@@ -1,4 +1,4 @@
-"""Vercel entry point: Telegram webhook -> the same handlers bot.py uses locally.
+"""Vercel entry point (FastAPI preset): Telegram webhook -> the same handlers bot.py uses locally.
 
 Telegram gets a 200 immediately; drafting (1-2 min) continues in the background via
 wait_until, bounded by the function's maxDuration (vercel.json).
@@ -10,7 +10,7 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fastapi import FastAPI, Header, Request, Response  # noqa: E402
 from telegram import Update  # noqa: E402

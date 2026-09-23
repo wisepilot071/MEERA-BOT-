@@ -2,7 +2,7 @@
 
 Runs two ways with the same handlers:
   - locally:   python bot.py            (long polling, handy for testing)
-  - on Vercel: api/index.py             (Telegram webhook -> build_application().process_update)
+  - on Vercel: main.py                  (Telegram webhook -> build_application().process_update)
 All state lives in store.py so it survives between serverless invocations.
 """
 

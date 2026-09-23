@@ -83,6 +83,6 @@ The token expires after about 60 days, so it needs renewing.
 | `news.py` | Google News RSS context |
 | `voice_check.py` | Enforces the hard rules: dashes, spelling, emojis, hashtags, banned words, bullets, length |
 | `linkedin.py` | Optional publishing through the LinkedIn Posts API |
-| `api/index.py` | Vercel webhook entry point |
+| `main.py` | Vercel webhook entry point |
 | `store.py` | State storage (Vercel Runtime Cache, in-memory locally) |
 | `set_webhook.py` | Connects Telegram to the Vercel URL |
