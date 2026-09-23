@@ -1,0 +1,10 @@
+2023, visiting a supplier in Ahmedabad with a batch of hyaluronic acid
+- CoA looked perfect, all specs within range
+- noticed molecular weight listed as a range so wide it covered both high and low MW HA
+- asked supplier, they said most buyers never ask
+- high MW sits on surface and hydrates, low MW penetrates more - behave differently
+- not fraud, the CoA was technically accurate, just not informative
+- we now specify MW range in our purchase spec and ask for per batch data
+- took us 4 extra months to find a supplier who'd commit
+- not an exciting story, just paperwork. but paperwork is where formulation actually happens
+- ask any brand: what MW of HA do you use and can you show batch data

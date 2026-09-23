@@ -1,0 +1,8 @@
+reader email: "is SPF 50 twice as good as SPF 25?"
+- no. SPF 30 blocks ~97% UVB, SPF 50 ~98%. not linear
+- real issue is amount applied. tests use 2mg/cm2, most people apply 1/4 to 1/2 of that
+- at half dose you get way less than label SPF, maybe square root-ish, varies by study
+- SPF only measures UVB. UVA needs PA rating or broad spectrum claim
+- reapplication matters more than the number, sweat, humid Mumbai summer
+- we dont sell a sunscreen - no stake here
+- what to check: PA++++, how much you actually use (2 finger rule for face), reapply every 2-3 hrs outdoors

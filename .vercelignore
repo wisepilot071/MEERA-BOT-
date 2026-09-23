@@ -1,0 +1,7 @@
+venv
+drafts
+__pycache__
+.env
+tests
+test_notes
+sample_notes.txt
