@@ -124,6 +124,8 @@ def keyboard(sid: str) -> InlineKeyboardMarkup:
 def summary(session: Session, label: str) -> str:
     d, c, r = session.draft, session.draft.check, session.draft.review
     lines = [f"{label} - {c.word_count} words"]
+    if d.assessment and d.assessment.available:
+        lines.append(f"Notes quality: {d.assessment.score}/10")
     if d.topic:
         lines.append(f"Topic: {d.topic}")
 
@@ -191,6 +193,8 @@ HELP = (
     "Edit - tell me what to change (e.g. 'shorter', 'the return rate was 4.2%', 'drop the news reference')\n"
     "Reject - discard it\n"
     "Regenerate - same notes, a fresh angle\n\n"
+    "First I rate your notes out of 10 (specific moment, mechanism, evidence, insight, reader value, integrity). "
+    "Notes scoring {min_score}/10 or more go ahead; otherwise I'll tell you what would strengthen them.\n\n"
     "Every draft is fact-checked against your notes and voice-checked before you see it.\n\n"
     "Commands: /cancel stops an edit in progress, /id shows your chat ID."
 )
@@ -200,7 +204,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not is_authorised(update):
         return await reject_unauthorised(update)
     publish = " and publish to LinkedIn" if settings.linkedin_enabled else " (you then paste it into LinkedIn)"
-    await update.message.reply_text(HELP.format(publish=publish))
+    await update.message.reply_text(HELP.format(publish=publish, min_score=settings.notes_min_score))
 
 
 async def cmd_id(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -245,16 +249,70 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await handle_notes(context, chat_id, "\n".join(reversed(parts)))
 
 
+CRITERIA_LABELS = {
+    "anchor": "Specific moment or observation", "mechanism": "Why / how it happens",
+    "evidence": "Numbers, data or documents", "insight": "A clear, non-obvious point",
+    "reader_value": "Something the reader can do", "integrity": "Honest, low-hype, on-brand",
+}
+
+
+def score_breakdown(a) -> str:
+    from generator import CRITERIA_MAX
+    return "\n".join(f"  • {CRITERIA_LABELS[k]}: {a.criteria.get(k, 0)}/{m}" for k, m in CRITERIA_MAX.items())
+
+
+def decline_message(a) -> str:
+    lines = [
+        "Thank you for sharing these notes.",
+        "",
+        f"I've rated them {a.score}/10 for post-readiness, and I need at least {settings.notes_min_score}/10 to write "
+        "a post that meets your standard - so I'm not able to generate one from these just yet. "
+        "This isn't about how they're written; rough notes are perfect. It's that some of the raw material is missing.",
+        "",
+        "How they scored:",
+        score_breakdown(a),
+    ]
+    if a.missing:
+        lines += ["", "What would lift them:"] + [f"  • {m}" for m in a.missing]
+    lines += ["", "Add a few of these details and send the notes again - I'll happily take another look."]
+    return "\n".join(lines)
+
+
 async def handle_notes(context: ContextTypes.DEFAULT_TYPE, chat_id: int, notes: str) -> None:
     if len(notes.split()) < 8:
         await context.bot.send_message(chat_id, "That's quite short. Paste a bit more - the claim, what you noticed, any numbers.")
         return
+    await context.bot.send_message(chat_id, "Got your notes. First I'm checking whether they have enough material for a post...")
+    gen = get_generator()
+    try:
+        async with typing(context, chat_id):
+            assessment = await gen.assess(notes)
+    except Exception as e:
+        log.exception("Assessment failed")
+        assessment = None
+        log.warning("Assessment error: %s", e)
+
+    if assessment is None or not assessment.available:
+        await context.bot.send_message(
+            chat_id,
+            "Sorry - I couldn't rate these notes just now (the AI service is busy), so I haven't drafted anything. "
+            "Please send them again in a minute or two.",
+        )
+        return
+
+    log.info("Notes scored %d/10 %s", assessment.score, assessment.criteria)
+    if not assessment.passes(settings.notes_min_score):
+        await context.bot.send_message(chat_id, decline_message(assessment))
+        return
+
     await context.bot.send_message(
-        chat_id, "Got your notes. Checking news, drafting, then fact- and voice-checking - usually 1-2 minutes."
+        chat_id,
+        f"Notes quality: {assessment.score}/10 - good material. Now checking news, drafting, then fact- and "
+        "voice-checking - usually 1-2 minutes.",
     )
     try:
         async with typing(context, chat_id):
-            draft = await get_generator().create(notes)
+            draft = await gen.create(notes, assessment)
     except Exception as e:
         log.exception("Draft generation failed")
         await context.bot.send_message(chat_id, f"Drafting failed: {e}\nTry sending the notes again.")

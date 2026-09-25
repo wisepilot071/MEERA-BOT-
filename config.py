@@ -37,10 +37,12 @@ class Settings:
             int(x) for x in _get("ALLOWED_CHAT_IDS").replace(" ", "").split(",") if x.lstrip("-").isdigit()
         }
     )
+    # Quality gate: notes must score at least this (out of 10) before a post is drafted
+    notes_min_score: int = field(default_factory=lambda: int(_get("NOTES_MIN_SCORE", "7") or 7))
     news_enabled: bool = field(default_factory=lambda: _get("NEWS_ENABLED", "true").lower() == "true")
     news_region: str = field(default_factory=lambda: _get("NEWS_REGION", "IN"))
-    news_max_items: int = field(default_factory=lambda: int(_get("NEWS_MAX_ITEMS", "8")))
-    news_max_age_days: int = field(default_factory=lambda: int(_get("NEWS_MAX_AGE_DAYS", "30")))
+    news_max_items: int = field(default_factory=lambda: int(_get("NEWS_MAX_ITEMS", "8") or 8))
+    news_max_age_days: int = field(default_factory=lambda: int(_get("NEWS_MAX_AGE_DAYS", "30") or 30))
 
     # Optional - Phase 2 auto-publishing
     linkedin_access_token: str = field(default_factory=lambda: _get("LINKEDIN_ACCESS_TOKEN"))

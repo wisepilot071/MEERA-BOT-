@@ -106,6 +106,31 @@ Return JSON with exactly these keys (each a list of short strings; empty list if
 """
 
 
+RUBRIC_TEXT = (BASE_DIR / "prompts" / "notes_quality_rubric.md").read_text(encoding="utf-8")
+REFERENCE_NOTES = "\n\n".join(
+    f"--- REFERENCE NOTE {p.stem[-2:]} ---\n{p.read_text(encoding='utf-8').strip()}"
+    for p in sorted((BASE_DIR / "prompts" / "reference_notes").glob("*.txt"))
+)
+CRITERIA_MAX = {"anchor": 2, "mechanism": 2, "evidence": 2, "insight": 2, "reader_value": 1, "integrity": 1}
+
+
+@dataclass
+class Assessment:
+    """Quality gate result. `score` is summed in code from per-criterion marks, never taken from the model."""
+    criteria: dict[str, int] = field(default_factory=dict)
+    strengths: list[str] = field(default_factory=list)
+    missing: list[str] = field(default_factory=list)
+    verdict: str = ""
+    available: bool = True
+
+    @property
+    def score(self) -> int:
+        return sum(self.criteria.values())
+
+    def passes(self, minimum: int) -> bool:
+        return self.available and self.score >= minimum
+
+
 @dataclass
 class Review:
     unsupported: list[str] = field(default_factory=list)
@@ -131,6 +156,7 @@ class Review:
 @dataclass
 class Draft:
     notes: str
+    assessment: Assessment | None = None
     topic: str = ""
     core_claim: str = ""
     search_query: str = ""
@@ -153,6 +179,7 @@ class Draft:
         d["news"] = [NewsItem(**n) for n in d.get("news", [])]
         d["check"] = voice_check.CheckResult(**d["check"]) if d.get("check") else None
         d["review"] = Review(**d["review"]) if d.get("review") else None
+        d["assessment"] = Assessment(**d["assessment"]) if d.get("assessment") else None
         return cls(**d)
 
     @property
@@ -207,6 +234,24 @@ class Generator:
             return {}
 
     # ---------- steps ----------
+
+    async def assess(self, notes: str) -> Assessment:
+        """Scores raw notes 0-10 against the rubric derived from Meera's reference notes."""
+        data = await self._json(
+            f"{RUBRIC_TEXT}\n\n## REFERENCE NOTES (the standard)\n{REFERENCE_NOTES}\n\n"
+            f"## NOTES TO SCORE\n{notes.strip()}",
+            model=self.review_model,
+        )
+        if not data:
+            return Assessment(available=False)
+        criteria = {}
+        for key, top in CRITERIA_MAX.items():
+            try:
+                criteria[key] = max(0, min(top, int(data.get(key, 0))))
+            except (TypeError, ValueError):
+                criteria[key] = 0
+        as_list = lambda k: [str(x) for x in data.get(k, []) if str(x).strip()][:4]  # noqa: E731
+        return Assessment(criteria, as_list("strengths"), as_list("missing"), str(data.get("one_line_verdict", "")))
 
     async def understand(self, draft: Draft) -> None:
         data = await self._json(
@@ -302,8 +347,8 @@ class Generator:
 
     # ---------- public ----------
 
-    async def create(self, notes: str) -> Draft:
-        draft = Draft(notes=notes.strip())
+    async def create(self, notes: str, assessment: Assessment | None = None) -> Draft:
+        draft = Draft(notes=notes.strip(), assessment=assessment)
         await self.understand(draft)
         await self.gather_context(draft)
         draft.text = await self._generate(self._write_prompt(draft), system=system_instruction())

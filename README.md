@@ -3,7 +3,9 @@
 Meera pastes raw notes into Telegram and gets back a LinkedIn post written in her voice. She approves, edits or rejects it before anything is published.
 
 ```
-Meera's notes -> Telegram bot -> Gemini: pick the topic and core claim
+Meera's notes -> Telegram bot -> QUALITY GATE: score notes /10 against prompts/notes_quality_rubric.md
+                                 (below NOTES_MIN_SCORE=7 -> kind decline + what to add; nothing drafted)
+                              -> Gemini: pick the topic and core claim
                               -> Google News RSS: recent headlines (current context)
                               -> Gemini: keep only headlines directly relevant to the claim
                               -> Gemini + Meera voice skill: write the post (GEMINI_MODEL)
@@ -37,6 +39,19 @@ Approve -> final text to paste into LinkedIn (Phase 1)
 - **Edit** means reply with an instruction, such as "make it shorter", "the return rate was 4.2%" or "drop the news reference".
 - **Placeholders.** If the argument needs a number that isn't in the notes, the post shows a placeholder such as `[X%]`. Approve stays blocked until Edit fills it in.
 - **Saved drafts.** Every draft, with its notes, news, versions and status, is saved in `drafts/<id>.json`.
+
+## Quality gate
+
+Before drafting, every set of notes is scored out of 10 on six criteria derived from Meera's
+reference notes (`prompts/reference_notes/`): specific moment (2), mechanism (2), evidence (2),
+insight (2), reader value (1), integrity (1). The total is summed in code from the per-criterion marks.
+Notes below `NOTES_MIN_SCORE` (default 7) get a polite decline with the breakdown and concrete
+suggestions; nothing is drafted. Rough, unpolished writing is never penalised - only missing substance.
+
+To check the rubric after editing it:
+```
+venv\Scripts\python calibrate.py prompts/reference_notes/*.txt test_notes/*.txt test_notes/weak/*.txt
+```
 
 ## Improving the voice match
 
@@ -86,3 +101,6 @@ The token expires after about 60 days, so it needs renewing.
 | `main.py` | Vercel webhook entry point |
 | `store.py` | State storage (Vercel Runtime Cache, in-memory locally) |
 | `set_webhook.py` | Connects Telegram to the Vercel URL |
+| `prompts/notes_quality_rubric.md` | Scoring criteria for the quality gate |
+| `prompts/reference_notes/` | Meera's reference notes the rubric is calibrated on |
+| `calibrate.py` | Scores note files against the gate |
