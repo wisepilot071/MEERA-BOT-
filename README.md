@@ -1,4 +1,4 @@
-# Meera LinkedIn Bot
+﻿# Meera LinkedIn Bot
 
 Meera pastes raw notes into Telegram and gets back a LinkedIn post written in her voice. She approves, edits or rejects it before anything is published.
 
@@ -55,7 +55,7 @@ venv\Scripts\python calibrate.py prompts/reference_notes/*.txt test_notes/*.txt 
 
 ## Improving the voice match
 
-Put 3–6 of Meera's real posts or newsletters in `examples/` as `.txt` files. They are used as style references only.
+Put 3â€“6 of Meera's real posts or newsletters in `examples/` as `.txt` files. They are used as style references only.
 
 ## Deploy on Vercel (always on)
 
@@ -70,7 +70,8 @@ Drafts and edit state live in Vercel's Runtime Cache (14-day expiry).
    ```
    venv\Scripts\python set_webhook.py https://<your-project>.vercel.app
    ```
-4. Stop any local `python bot.py` - local polling removes the webhook. Check status any time with
+4. Pushes to main auto-deploy. Commits must be authored with the email on the linked GitHub account, or Vercel's Hobby plan blocks the deploy.
+5. Stop any local `python bot.py` - local polling removes the webhook. Check status any time with
    `python set_webhook.py --info`.
 
 ## Test without Telegram
