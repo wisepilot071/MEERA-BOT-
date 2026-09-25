@@ -279,8 +279,8 @@ def decline_message(a) -> str:
 
 
 async def handle_notes(context: ContextTypes.DEFAULT_TYPE, chat_id: int, notes: str) -> None:
-    if len(notes.split()) < 8:
-        await context.bot.send_message(chat_id, "That's quite short. Paste a bit more - the claim, what you noticed, any numbers.")
+    if len(notes.split()) < 3:  # only catch accidental one- or two-word messages; everything else is scored
+        await context.bot.send_message(chat_id, "That looks like just a word or two - paste your notes (what happened, why, any numbers) and I'll rate them.")
         return
     await context.bot.send_message(chat_id, "Got your notes. First I'm checking whether they have enough material for a post...")
     gen = get_generator()
